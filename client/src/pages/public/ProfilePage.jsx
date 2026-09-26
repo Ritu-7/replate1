@@ -14,6 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   PageHeader,
   Card,
@@ -259,7 +260,7 @@ const ProfilePage = () => {
     );
   }
 
-  return (
+  const content = (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Page Header */}
       <PageHeader
@@ -570,6 +571,12 @@ const ProfilePage = () => {
       </Modal>
     </div>
   );
+
+  if (currentUser) {
+    return <DashboardLayout title="Account Profile">{content}</DashboardLayout>;
+  }
+
+  return content;
 };
 
 export default ProfilePage;

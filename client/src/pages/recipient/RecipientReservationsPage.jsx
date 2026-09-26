@@ -20,8 +20,11 @@ import {
   Modal,
 } from "../../components/common";
 import { reservationService } from "../../services/reservationService";
+import { useAuth } from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 
 const RecipientReservationsPage = () => {
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,7 @@ const RecipientReservationsPage = () => {
     return s === "PENDING" || s === "CONFIRMED" || s === "READY_FOR_PICKUP";
   };
 
-  return (
+  const content = (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <PageHeader
         title="My Reservations"
@@ -286,6 +289,12 @@ const RecipientReservationsPage = () => {
       </Modal>
     </div>
   );
+
+  if (currentUser) {
+    return <DashboardLayout title="My Reservations">{content}</DashboardLayout>;
+  }
+
+  return content;
 };
 
 export default RecipientReservationsPage;

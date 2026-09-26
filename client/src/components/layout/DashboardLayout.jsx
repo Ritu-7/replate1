@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Logo from "../common/Logo";
+import NotificationDropdown from "../notification/NotificationDropdown";
 import { useAuth } from "../../context/AuthContext";
 
 const getNavItemsForRole = (role) => {
@@ -151,14 +152,8 @@ const DashboardLayout = ({ children, title = "Dashboard" }) => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notification Bell */}
-            <button
-              className="relative p-2 rounded-xl text-charcoal-600 hover:bg-surface-100 hover:text-charcoal-900"
-              title="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
-            </button>
+            {/* Notification Bell Dropdown */}
+            <NotificationDropdown />
 
             {/* Role Badge Pill */}
             <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 border border-brand-200 text-brand-800 text-xs font-bold">

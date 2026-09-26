@@ -23,8 +23,11 @@ import {
   LoadingSpinner,
 } from "../../components/common";
 import { foodService } from "../../services/foodService";
+import { useAuth } from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 
 const BusinessFoodPage = () => {
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [foodListings, setFoodListings] = useState([]);
@@ -109,7 +112,7 @@ const BusinessFoodPage = () => {
     "Expired",
   ];
 
-  return (
+  const content = (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <PageHeader
@@ -368,6 +371,12 @@ const BusinessFoodPage = () => {
       </Modal>
     </div>
   );
+
+  if (currentUser) {
+    return <DashboardLayout title="Food Inventory Management">{content}</DashboardLayout>;
+  }
+
+  return content;
 };
 
 export default BusinessFoodPage;

@@ -24,6 +24,8 @@ import {
 import FoodCard from "../../components/food/FoodCard";
 import FoodMap from "../../components/food/FoodMap";
 import { foodService } from "../../services/foodService";
+import { useAuth } from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 
 const CATEGORIES = [
   "All Categories",
@@ -59,6 +61,7 @@ const SORT_OPTIONS = [
 ];
 
 const FoodDirectoryPage = () => {
+  const { currentUser } = useAuth();
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -155,7 +158,7 @@ const FoodDirectoryPage = () => {
     selectedPrice !== "all" ||
     selectedStatus !== "all";
 
-  return (
+  const content = (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
       {/* Page Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -401,6 +404,12 @@ const FoodDirectoryPage = () => {
       )}
     </div>
   );
+
+  if (currentUser) {
+    return <DashboardLayout title="Food Surplus Marketplace">{content}</DashboardLayout>;
+  }
+
+  return content;
 };
 
 export default FoodDirectoryPage;

@@ -21,8 +21,11 @@ import {
   ImageUploader,
 } from "../../components/common";
 import { foodService } from "../../services/foodService";
+import { useAuth } from "../../context/AuthContext";
+import DashboardLayout from "../../components/layout/DashboardLayout";
 
 const ListFoodPage = () => {
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const editFood = location.state?.editFood;
@@ -184,7 +187,7 @@ const ListFoodPage = () => {
     }
   };
 
-  return (
+  const content = (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Page Header */}
       <PageHeader
@@ -452,6 +455,12 @@ const ListFoodPage = () => {
       </Modal>
     </div>
   );
+
+  if (currentUser) {
+    return <DashboardLayout title={editFood ? "Edit Surplus Food Listing" : "Post Surplus Food Listing"}>{content}</DashboardLayout>;
+  }
+
+  return content;
 };
 
 export default ListFoodPage;
