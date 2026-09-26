@@ -6,31 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <title>RePlate - Good food deserves another plate</title>
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement({
-          pageLanguage: "en",
-          includedLanguages: "en,es,hi,fr,ar,zh-CN",
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-        }, "google_translate_element");
-      }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <style>
       /* Hide the Google Translate toolbar that pushes the page down */
-      .skiptranslate iframe { display: none !important; }
+      .skiptranslate iframe, .goog-te-banner-frame { display: none !important; }
       body { top: 0 !important; }
-      /* Style the widget slightly to blend in */
-      #google_translate_element select {
-        background-color: transparent;
-        border: none;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        outline: none;
-      }
-      .goog-te-gadget { color: transparent !important; }
+      .goog-te-gadget { color: transparent !important; font-size: 0 !important; }
       .goog-te-gadget span { display: none !important; }
+      .goog-te-combo { outline: none; border-radius: 8px; }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900 antialiased min-h-screen">

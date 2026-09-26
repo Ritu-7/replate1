@@ -28,27 +28,30 @@ api.interceptors.request.use(
   async (config) => {
     try {
       const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
-      } else {
-        // Fallback check if user is stored in localStorage
-        const savedUserStr = localStorage.getItem("replate_current_user");
-        if (savedUserStr) {
-          const savedUser = JSON.parse(savedUserStr);
-          config.headers.Authorization = `Bearer ${savedUser.uid || "dev-user-firebase-uid-123"}`;
+      if (user && typeof user.getIdToken === "function") {
+        const token = await user.getIdToken(/* forceRefresh */ false).catch(() => null);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+          return config;
+        }
+      }
+
+      // Fallback check if user is stored in localStorage
+      const savedUserStr = localStorage.getItem("replate_current_user");
+      if (savedUserStr) {
+        const savedUser = JSON.parse(savedUserStr);
+        if (savedUser && savedUser.uid) {
+          config.headers.Authorization = `Bearer ${savedUser.uid}`;
         }
       }
     } catch (error) {
-      console.warn(
-        "Axios Auth Interceptor token fetch warning:",
-        error.message,
-      );
       const savedUserStr = localStorage.getItem("replate_current_user");
       if (savedUserStr) {
         try {
           const savedUser = JSON.parse(savedUserStr);
-          config.headers.Authorization = `Bearer ${savedUser.uid || "dev-user-firebase-uid-123"}`;
+          if (savedUser && savedUser.uid) {
+            config.headers.Authorization = `Bearer ${savedUser.uid}`;
+          }
         } catch (e) {}
       }
     }

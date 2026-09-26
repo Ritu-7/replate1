@@ -14,3 +14,5 @@ export { default as DashboardCard } from "./DashboardCard";
 export { default as Logo } from "./Logo";
 export { default as ImageUploader } from "./ImageUploader";
 export { default as WhatsAppButton } from "./WhatsAppButton";
+export { default as LanguageSwitcher } from "./LanguageSwitcher";
+

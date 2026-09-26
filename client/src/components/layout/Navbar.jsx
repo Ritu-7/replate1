@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, ArrowRight, LogOut, LayoutDashboard, Globe } from "lucide-react";
+import { Menu, X, ArrowRight, LogOut, LayoutDashboard } from "lucide-react";
 import Logo from "../common/Logo";
 import Button from "../common/Button";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 import NotificationDropdown from "../notification/NotificationDropdown";
 import { useAuth } from "../../context/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -107,10 +108,7 @@ const Navbar = () => {
           {/* Desktop Auth State / Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {/* Language Switcher */}
-            <div className="flex items-center text-charcoal-500 overflow-hidden h-6">
-              <Globe className="w-4 h-4 mr-1" />
-              <div id="google_translate_element"></div>
-            </div>
+            <LanguageSwitcher />
 
             {currentUser ? (
               <div className="flex items-center gap-3">

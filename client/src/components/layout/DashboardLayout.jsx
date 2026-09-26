@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Logo from "../common/Logo";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 import NotificationDropdown from "../notification/NotificationDropdown";
 import { useAuth } from "../../context/AuthContext";
 
@@ -152,6 +153,9 @@ const DashboardLayout = ({ children, title = "Dashboard" }) => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Notification Bell Dropdown */}
             <NotificationDropdown />
 
