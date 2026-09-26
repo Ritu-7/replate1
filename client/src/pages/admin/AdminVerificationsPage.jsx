@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { ShieldCheck, XCircle, AlertCircle, RefreshCw, Wrench } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   Card,
@@ -16,6 +16,7 @@ const AdminVerificationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [rejectLoadingId, setRejectLoadingId] = useState(null);
+  const [repairLoading, setRepairLoading] = useState(false);
 
   const fetchPendingQueue = async () => {
     setLoading(true);
@@ -83,6 +84,20 @@ const AdminVerificationsPage = () => {
     }
   };
 
+  const handleRepair = async () => {
+    if (!window.confirm("This will scan all users and create any missing profile documents (BusinessProfile / RecipientProfile). Stale profiles for the wrong role will be removed. Continue?")) return;
+    setRepairLoading(true);
+    try {
+      const result = await adminService.repairQueues();
+      alert(`Repair complete: ${result.message}\n${result.report.fixed.map(f => `• ${f.email}: ${f.action}`).join("\n") || "Nothing needed fixing."}`);
+      await fetchPendingQueue();
+    } catch (err) {
+      alert("Repair failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setRepairLoading(false);
+    }
+  };
+
   const totalPending = businesses.length + recipients.length;
 
   return (
@@ -97,7 +112,7 @@ const AdminVerificationsPage = () => {
               Review and verify new organizations
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200">
               {totalPending} Awaiting Review
             </span>
@@ -106,25 +121,25 @@ const AdminVerificationsPage = () => {
               size="sm"
               iconLeft={RefreshCw}
               onClick={fetchPendingQueue}
-              disabled={loading}
+              disabled={loading || repairLoading}
             >
               Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              iconLeft={Wrench}
+              onClick={handleRepair}
+              disabled={loading || repairLoading}
+              className="text-amber-700 border-amber-300 hover:bg-amber-50"
+            >
+              {repairLoading ? "Repairing..." : "Repair Queue"}
             </Button>
           </div>
         </div>
 
         {loading ? (
           <LoadingSpinner size="lg" message="Loading pending queue..." />
-        ) : totalPending === 0 ? (
-          <Card variant="default" className="py-12">
-            <EmptyState
-              icon={ShieldCheck}
-              title="All Caught Up!"
-              description="There are no pending accounts waiting for verification at this time."
-              actionLabel="Refresh Queue"
-              onAction={fetchPendingQueue}
-            />
-          </Card>
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Businesses Column */}

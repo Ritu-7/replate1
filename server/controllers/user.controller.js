@@ -155,9 +155,15 @@ const syncUser = async (req, res, next) => {
       });
     }
 
+    // isNewSignup=true means this is a fresh registration — only then delete conflicting profiles.
+    // On login syncs (isNewSignup absent/false) leave existing profiles untouched to avoid data loss.
+    const isNewSignup = req.body.isNewSignup === true || req.body.isNewSignup === "true";
+
     // Auto-create associated profile so they appear in Admin Verification Queue immediately
     if (user.role === "BUSINESS") {
-      await RecipientProfile.deleteOne({ userId: user._id }).catch(() => {});
+      if (isNewSignup) {
+        await RecipientProfile.deleteOne({ userId: user._id }).catch(() => {});
+      }
 
       const existing = await BusinessProfile.findOne({ userId: user._id });
       if (existing) {
@@ -194,7 +200,9 @@ const syncUser = async (req, res, next) => {
         });
       }
     } else if (user.role === "RECIPIENT") {
-      await BusinessProfile.deleteOne({ userId: user._id }).catch(() => {});
+      if (isNewSignup) {
+        await BusinessProfile.deleteOne({ userId: user._id }).catch(() => {});
+      }
 
       const existing = await RecipientProfile.findOne({ userId: user._id });
       if (existing) {

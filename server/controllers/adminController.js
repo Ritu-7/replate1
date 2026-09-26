@@ -340,6 +340,68 @@ const processRewardRequest = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const repairQueues = async (req, res, next) => {
+  try {
+    const users = await User.find({ role: { $in: ["BUSINESS", "RECIPIENT"] } });
+    const report = { fixed: [], skipped: [] };
+
+    for (const user of users) {
+      const hasBusiness = await BusinessProfile.exists({ userId: user._id });
+      const hasRecipient = await RecipientProfile.exists({ userId: user._id });
+
+      if (user.role === "BUSINESS") {
+        if (!hasBusiness) {
+          // Create missing BusinessProfile
+          await BusinessProfile.create({
+            userId: user._id,
+            businessName: user.organizationName || user.name || "Commercial Kitchen",
+            businessType: user.businessType || "RESTAURANT",
+            phone: user.phone || "",
+            address: user.location?.address || "",
+            city: user.location?.city || "Noida",
+            state: user.location?.state || "Uttar Pradesh",
+            isVerified: user.isVerified || false,
+          });
+          report.fixed.push({ uid: user.firebaseUid, email: user.email, action: "created BusinessProfile" });
+        }
+        if (hasRecipient) {
+          // Remove stale RecipientProfile
+          await RecipientProfile.deleteOne({ userId: user._id });
+          report.fixed.push({ uid: user.firebaseUid, email: user.email, action: "deleted stale RecipientProfile" });
+        }
+      } else if (user.role === "RECIPIENT") {
+        if (!hasRecipient) {
+          // Create missing RecipientProfile
+          await RecipientProfile.create({
+            userId: user._id,
+            organizationName: user.organizationName || user.name || "Recipient Organization",
+            recipientType: user.recipientType || "NGO",
+            phone: user.phone || "",
+            address: user.location?.address || "",
+            city: user.location?.city || "Noida",
+            state: user.location?.state || "Uttar Pradesh",
+            isVerified: user.isVerified || false,
+          });
+          report.fixed.push({ uid: user.firebaseUid, email: user.email, action: "created RecipientProfile" });
+        }
+        if (hasBusiness) {
+          // Remove stale BusinessProfile
+          await BusinessProfile.deleteOne({ userId: user._id });
+          report.fixed.push({ uid: user.firebaseUid, email: user.email, action: "deleted stale BusinessProfile" });
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Queue repair complete. ${report.fixed.length} action(s) taken.`,
+      report,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllBusinesses,
   getAllRecipients,
@@ -351,4 +413,5 @@ module.exports = {
   updateSystemSettings,
   getRewardRequests,
   processRewardRequest,
+  repairQueues,
 };

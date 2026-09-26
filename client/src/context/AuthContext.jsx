@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Helper to sync user profile with MongoDB backend
-  const syncWithMongoDB = async (fbUser, role = "business", extraData = {}) => {
+  const syncWithMongoDB = async (fbUser, role = "business", extraData = {}, isNewSignup = false) => {
     try {
       const payload = {
         firebaseUid: fbUser.uid,
@@ -71,6 +71,7 @@ export const AuthProvider = ({ children }) => {
         businessType: extraData.businessType,
         registrationNumber: extraData.registrationNumber,
         eventCardImage: extraData.eventCardImage,
+        isNewSignup,
       };
       const res = await syncUserProfile(payload);
       if (res.success && res.data) {
@@ -126,7 +127,7 @@ export const AuthProvider = ({ children }) => {
       saveUserSession(user);
       localStorage.setItem("replate_user_role", role);
       setUserRole(role);
-      await syncWithMongoDB(user, role, { name: displayName, ...extraData });
+      await syncWithMongoDB(user, role, { name: displayName, ...extraData }, true);
       return user;
     } catch (error) {
       console.error("Firebase Signup Error:", error);
