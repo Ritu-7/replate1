@@ -165,7 +165,21 @@ export const AuthProvider = ({ children }) => {
       }
 
       saveUserSession(user);
-      await syncWithMongoDB(user, userRole);
+
+      try {
+        const profileRes = await getCurrentUserProfile();
+        if (profileRes.success && profileRes.data) {
+          setMongoUser(profileRes.data);
+          const mRole = profileRes.data.role.toLowerCase();
+          setUserRole(mRole);
+          localStorage.setItem("replate_user_role", mRole);
+        } else {
+          await syncWithMongoDB(user, userRole);
+        }
+      } catch (e) {
+        await syncWithMongoDB(user, userRole);
+      }
+
       return user;
     } catch (error) {
       console.error("Firebase Login Error:", error);
@@ -174,7 +188,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login with Google Popup
-  const loginWithGoogle = async (role = "business", extraData = {}) => {
+  const loginWithGoogle = async (requestedRole = null, extraData = {}) => {
     try {
       let user;
       try {
@@ -200,9 +214,25 @@ export const AuthProvider = ({ children }) => {
       }
 
       saveUserSession(user);
-      localStorage.setItem("replate_user_role", role);
-      setUserRole(role);
-      await syncWithMongoDB(user, role, extraData);
+
+      try {
+        const profileRes = await getCurrentUserProfile();
+        if (profileRes.success && profileRes.data) {
+          setMongoUser(profileRes.data);
+          const mRole = profileRes.data.role.toLowerCase();
+          setUserRole(mRole);
+          localStorage.setItem("replate_user_role", mRole);
+        } else {
+          const role = requestedRole || userRole || "business";
+          localStorage.setItem("replate_user_role", role);
+          setUserRole(role);
+          await syncWithMongoDB(user, role, extraData);
+        }
+      } catch (e) {
+        const role = requestedRole || userRole || "business";
+        await syncWithMongoDB(user, role, extraData);
+      }
+
       return user;
     } catch (error) {
       console.error("Firebase Google Login Error:", error);

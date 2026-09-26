@@ -61,18 +61,14 @@ const syncUser = async (req, res, next) => {
     let user = await User.findOne({ firebaseUid });
 
     // Format role enum safely
-    const formattedRole = role
-      ? role.toUpperCase()
-      : user
-        ? user.role
-        : "BUSINESS";
+    const incomingRole = role ? role.toUpperCase() : null;
+    let finalRole;
 
-    // If user already exists, ALWAYS preserve their role to prevent frontend overwrites during login
-    let finalRole = user
-      ? user.role
-      : ["BUSINESS", "RECIPIENT"].includes(formattedRole)
-        ? formattedRole
-        : "BUSINESS";
+    if (incomingRole && ["BUSINESS", "RECIPIENT"].includes(incomingRole)) {
+      finalRole = incomingRole;
+    } else {
+      finalRole = user ? user.role : "BUSINESS";
+    }
 
     const isSuperAdmin =
       email &&
@@ -87,9 +83,11 @@ const syncUser = async (req, res, next) => {
       // Update existing user profile
       user.name = name || user.name;
       user.email = email || user.email;
-      // We only update the role if they were promoted to ADMIN
-      if (finalRole === "RECIPIENT" && recipientType && !user.recipientType) user.recipientType = recipientType;
-      if (finalRole === "BUSINESS" && businessType && !user.businessType) user.businessType = businessType;
+      if (user.role !== "ADMIN") {
+        user.role = finalRole;
+      }
+      if (finalRole === "RECIPIENT" && recipientType) user.recipientType = recipientType;
+      if (finalRole === "BUSINESS" && businessType) user.businessType = businessType;
       if (isSuperAdmin) {
         user.role = "ADMIN";
         user.isVerified = true;

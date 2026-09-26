@@ -9,22 +9,20 @@ const getAuthenticatedMongoUser = async (req) => {
     throw err;
   }
 
-  let mongoUser = await User.findOne({ firebaseUid });
-  if (!mongoUser) {
-    mongoUser = await User.create({
-      firebaseUid,
-      email: req.user.email || "user@replate.org",
-      name: req.user.name || "RePlate User",
-      role: "RECIPIENT",
-    });
-  }
-
-  return mongoUser;
+  return await User.findOne({ firebaseUid });
 };
 
 const getNotifications = async (req, res, next) => {
   try {
     const mongoUser = await getAuthenticatedMongoUser(req);
+    if (!mongoUser) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        unreadCount: 0,
+        notifications: [],
+      });
+    }
 
     const notifications = await Notification.find({ userId: mongoUser._id })
       .sort({ createdAt: -1 })
@@ -50,6 +48,9 @@ const markAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
     const mongoUser = await getAuthenticatedMongoUser(req);
+    if (!mongoUser) {
+      return res.status(401).json({ success: false, message: "User profile not found" });
+    }
 
     const notification = await Notification.findById(id);
     if (!notification) {
@@ -84,6 +85,9 @@ const markAsRead = async (req, res, next) => {
 const markAllAsRead = async (req, res, next) => {
   try {
     const mongoUser = await getAuthenticatedMongoUser(req);
+    if (!mongoUser) {
+      return res.status(200).json({ success: true, message: "No notifications", unreadCount: 0 });
+    }
 
     await Notification.updateMany(
       { userId: mongoUser._id, isRead: false },
@@ -104,6 +108,9 @@ const deleteNotification = async (req, res, next) => {
   try {
     const { id } = req.params;
     const mongoUser = await getAuthenticatedMongoUser(req);
+    if (!mongoUser) {
+      return res.status(401).json({ success: false, message: "User profile not found" });
+    }
 
     const notification = await Notification.findById(id);
     if (!notification) {
