@@ -46,6 +46,12 @@ export const adminService = {
     const response = await api.post("/admin/repair-queues");
     return response.data;
   },
+
+  // Move a single profile entry from one queue to the other
+  reclassifyEntry: async (profileId, fromType, toRole) => {
+    const response = await api.post("/admin/reclassify", { profileId, fromType, toRole });
+    return response.data;
+  },
 };
 
 export default adminService;

@@ -346,6 +346,13 @@ const repairQueues = async (req, res, next) => {
     const report = { fixed: [], skipped: [] };
 
     for (const user of users) {
+      // Auto-detect role corruption: if user has businessType set (e.g. RESTAURANT) but role is RECIPIENT
+      if (user.businessType && user.role !== "BUSINESS") {
+        user.role = "BUSINESS";
+        await user.save();
+        report.fixed.push({ uid: user.firebaseUid, email: user.email, action: "corrected role to BUSINESS based on businessType" });
+      }
+
       const hasBusiness = await BusinessProfile.exists({ userId: user._id });
       const hasRecipient = await RecipientProfile.exists({ userId: user._id });
 
@@ -402,6 +409,102 @@ const repairQueues = async (req, res, next) => {
   }
 };
 
+// reclassifyUser: moves a profile from the wrong queue to the correct one.
+// profileId  = _id of RecipientProfile or BusinessProfile document
+// fromType   = "recipient" | "business"  (what collection it currently lives in)
+// toRole     = "BUSINESS" | "RECIPIENT"  (where it should go)
+const reclassifyUser = async (req, res, next) => {
+  try {
+    const { profileId, fromType, toRole } = req.body;
+
+    if (!profileId || !fromType || !toRole) {
+      res.status(400);
+      throw new Error("profileId, fromType and toRole are required");
+    }
+
+    const targetRole = toRole.toUpperCase();
+    if (!["BUSINESS", "RECIPIENT"].includes(targetRole)) {
+      res.status(400);
+      throw new Error("toRole must be BUSINESS or RECIPIENT");
+    }
+
+    // 1. Find the current profile document
+    let userId, profileName, registrationNumber, phone, address, city, state;
+
+    if (fromType === "recipient") {
+      const rp = await RecipientProfile.findById(profileId);
+      if (!rp) { res.status(404); throw new Error("RecipientProfile not found"); }
+      userId = rp.userId;
+      profileName = rp.organizationName;
+      registrationNumber = rp.registrationNumber;
+      phone = rp.phone;
+      address = rp.address;
+      city = rp.city;
+      state = rp.state;
+      await RecipientProfile.findByIdAndDelete(profileId);
+    } else {
+      const bp = await BusinessProfile.findById(profileId);
+      if (!bp) { res.status(404); throw new Error("BusinessProfile not found"); }
+      userId = bp.userId;
+      profileName = bp.businessName;
+      registrationNumber = bp.registrationNumber;
+      phone = bp.phone;
+      address = bp.address;
+      city = bp.city;
+      state = bp.state;
+      await BusinessProfile.findByIdAndDelete(profileId);
+    }
+
+    // 2. Update User.role
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role: targetRole, businessType: targetRole === "BUSINESS" ? "RESTAURANT" : undefined },
+      { new: true }
+    );
+    if (!user) { res.status(404); throw new Error("User not found"); }
+
+    // 3. Create the correct profile in the right collection
+    let newProfile;
+    if (targetRole === "BUSINESS") {
+      // Remove any stale BusinessProfile first (safety)
+      await BusinessProfile.deleteOne({ userId }).catch(() => {});
+      newProfile = await BusinessProfile.create({
+        userId,
+        businessName: profileName || user.organizationName || user.name || "Commercial Kitchen",
+        businessType: user.businessType || "RESTAURANT",
+        registrationNumber: registrationNumber || "",
+        phone: phone || user.phone || "",
+        address: address || user.location?.address || "",
+        city: city || user.location?.city || "Noida",
+        state: state || user.location?.state || "Uttar Pradesh",
+        isVerified: false,
+      });
+    } else {
+      // Remove any stale RecipientProfile first (safety)
+      await RecipientProfile.deleteOne({ userId }).catch(() => {});
+      newProfile = await RecipientProfile.create({
+        userId,
+        organizationName: profileName || user.organizationName || user.name || "Recipient Organization",
+        recipientType: user.recipientType || "NGO",
+        registrationNumber: registrationNumber || "",
+        phone: phone || user.phone || "",
+        address: address || user.location?.address || "",
+        city: city || user.location?.city || "Noida",
+        state: state || user.location?.state || "Uttar Pradesh",
+        isVerified: false,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${profileName} moved to ${targetRole === "BUSINESS" ? "Businesses & Restaurants" : "NGOs & Shelters"} queue`,
+      newProfile,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllBusinesses,
   getAllRecipients,
@@ -414,4 +517,5 @@ module.exports = {
   getRewardRequests,
   processRewardRequest,
   repairQueues,
+  reclassifyUser,
 };

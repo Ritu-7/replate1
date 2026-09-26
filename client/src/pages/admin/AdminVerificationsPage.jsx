@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, XCircle, AlertCircle, RefreshCw, Wrench } from "lucide-react";
+import { ShieldCheck, XCircle, RefreshCw, Wrench, ArrowLeftRight } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   Card,
   Badge,
   Button,
   LoadingSpinner,
-  EmptyState,
 } from "../../components/common";
 import { adminService } from "../../services/adminService";
 
@@ -17,6 +16,8 @@ const AdminVerificationsPage = () => {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [rejectLoadingId, setRejectLoadingId] = useState(null);
   const [repairLoading, setRepairLoading] = useState(false);
+  const [reclassifyLoadingId, setReclassifyLoadingId] = useState(null);
+
 
   const fetchPendingQueue = async () => {
     setLoading(true);
@@ -98,7 +99,28 @@ const AdminVerificationsPage = () => {
     }
   };
 
+  // Move a single entry from NGOs → Businesses or vice versa
+  const handleReclassify = async (profileId, fromType, toRole, profileName) => {
+    setReclassifyLoadingId(profileId);
+    try {
+      await adminService.reclassifyEntry(profileId, fromType, toRole);
+      if (toRole === "BUSINESS") {
+        // Remove from recipients list, re-fetch businesses to get the new BusinessProfile
+        setRecipients((prev) => prev.filter((r) => r._id !== profileId));
+      } else {
+        setBusinesses((prev) => prev.filter((b) => b._id !== profileId));
+      }
+      // Refresh both lists to get the newly created profile doc with correct _id
+      await fetchPendingQueue();
+    } catch (err) {
+      alert("Move failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setReclassifyLoadingId(null);
+    }
+  };
+
   const totalPending = businesses.length + recipients.length;
+
 
   return (
     <DashboardLayout title="Verification Queue">
@@ -191,7 +213,7 @@ const AdminVerificationsPage = () => {
                         size="sm"
                         onClick={() => handleVerify(bus._id, "business")}
                         isLoading={actionLoadingId === bus._id}
-                        disabled={rejectLoadingId === bus._id}
+                        disabled={rejectLoadingId === bus._id || reclassifyLoadingId === bus._id}
                         iconLeft={ShieldCheck}
                       >
                         Approve
@@ -199,10 +221,21 @@ const AdminVerificationsPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        onClick={() => handleReclassify(bus._id, "business", "RECIPIENT", bus.businessName)}
+                        isLoading={reclassifyLoadingId === bus._id}
+                        disabled={actionLoadingId === bus._id || rejectLoadingId === bus._id}
+                        iconLeft={ArrowLeftRight}
+                      >
+                        Move to NGO
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                         onClick={() => handleReject(bus._id, "business")}
                         isLoading={rejectLoadingId === bus._id}
-                        disabled={actionLoadingId === bus._id}
+                        disabled={actionLoadingId === bus._id || reclassifyLoadingId === bus._id}
                         iconLeft={XCircle}
                       >
                         Reject
@@ -268,7 +301,7 @@ const AdminVerificationsPage = () => {
                         size="sm"
                         onClick={() => handleVerify(rec._id, "recipient")}
                         isLoading={actionLoadingId === rec._id}
-                        disabled={rejectLoadingId === rec._id}
+                        disabled={rejectLoadingId === rec._id || reclassifyLoadingId === rec._id}
                         iconLeft={ShieldCheck}
                       >
                         Approve
@@ -276,10 +309,21 @@ const AdminVerificationsPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                        onClick={() => handleReclassify(rec._id, "recipient", "BUSINESS", rec.organizationName)}
+                        isLoading={reclassifyLoadingId === rec._id}
+                        disabled={actionLoadingId === rec._id || rejectLoadingId === rec._id}
+                        iconLeft={ArrowLeftRight}
+                      >
+                        Move to Business
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                         onClick={() => handleReject(rec._id, "recipient")}
                         isLoading={rejectLoadingId === rec._id}
-                        disabled={actionLoadingId === rec._id}
+                        disabled={actionLoadingId === rec._id || reclassifyLoadingId === rec._id}
                         iconLeft={XCircle}
                       >
                         Reject
