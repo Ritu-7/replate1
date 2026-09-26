@@ -31,6 +31,31 @@ const getCurrentUser = async (req, res, next) => {
       user.role = "ADMIN";
       user.isVerified = true;
       await user.save();
+    } else if (user.role !== "ADMIN") {
+      // Self-healing role check based on associated profiles & entity attributes
+      const hasBusiness = await BusinessProfile.exists({ userId: user._id });
+      const hasRecipient = await RecipientProfile.exists({ userId: user._id });
+
+      let autoFixed = false;
+      if (hasBusiness && !hasRecipient && user.role !== "BUSINESS") {
+        user.role = "BUSINESS";
+        autoFixed = true;
+      } else if (hasRecipient && !hasBusiness && user.role !== "RECIPIENT") {
+        user.role = "RECIPIENT";
+        autoFixed = true;
+      } else if (!hasBusiness && !hasRecipient) {
+        if (user.businessType && !user.recipientType && user.role !== "BUSINESS") {
+          user.role = "BUSINESS";
+          autoFixed = true;
+        } else if (user.recipientType && !user.businessType && user.role !== "RECIPIENT") {
+          user.role = "RECIPIENT";
+          autoFixed = true;
+        }
+      }
+
+      if (autoFixed) {
+        await user.save();
+      }
     }
 
     res.status(200).json({
@@ -132,6 +157,8 @@ const syncUser = async (req, res, next) => {
 
     // Auto-create associated profile so they appear in Admin Verification Queue immediately
     if (user.role === "BUSINESS") {
+      await RecipientProfile.deleteOne({ userId: user._id }).catch(() => {});
+
       const existing = await BusinessProfile.findOne({ userId: user._id });
       if (existing) {
         let changed = false;
@@ -167,6 +194,8 @@ const syncUser = async (req, res, next) => {
         });
       }
     } else if (user.role === "RECIPIENT") {
+      await BusinessProfile.deleteOne({ userId: user._id }).catch(() => {});
+
       const existing = await RecipientProfile.findOne({ userId: user._id });
       if (existing) {
         let changed = false;
