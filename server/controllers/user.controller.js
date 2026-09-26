@@ -21,41 +21,17 @@ const getCurrentUser = async (req, res, next) => {
 
     if (!user) {
       // Do NOT auto-create. Allow syncWithMongoDB to handle creation.
-      // Returning null prevents the frontend from crashing/logging out during the signup race condition.
       return res.status(200).json({
         success: true,
         data: null,
       });
-    } else if (isSuperAdmin && (user.role !== "ADMIN" || !user.isVerified)) {
-      // Auto-promote existing profile
+    }
+
+    // Auto-promote super admin
+    if (isSuperAdmin && (user.role !== "ADMIN" || !user.isVerified)) {
       user.role = "ADMIN";
       user.isVerified = true;
       await user.save();
-    } else if (user.role !== "ADMIN") {
-      // Self-healing role check based on associated profiles & entity attributes
-      const hasBusiness = await BusinessProfile.exists({ userId: user._id });
-      const hasRecipient = await RecipientProfile.exists({ userId: user._id });
-
-      let autoFixed = false;
-      if (hasBusiness && !hasRecipient && user.role !== "BUSINESS") {
-        user.role = "BUSINESS";
-        autoFixed = true;
-      } else if (hasRecipient && !hasBusiness && user.role !== "RECIPIENT") {
-        user.role = "RECIPIENT";
-        autoFixed = true;
-      } else if (!hasBusiness && !hasRecipient) {
-        if (user.businessType && !user.recipientType && user.role !== "BUSINESS") {
-          user.role = "BUSINESS";
-          autoFixed = true;
-        } else if (user.recipientType && !user.businessType && user.role !== "RECIPIENT") {
-          user.role = "RECIPIENT";
-          autoFixed = true;
-        }
-      }
-
-      if (autoFixed) {
-        await user.save();
-      }
     }
 
     res.status(200).json({
@@ -66,6 +42,7 @@ const getCurrentUser = async (req, res, next) => {
     next(error);
   }
 };
+
 
 const syncUser = async (req, res, next) => {
   try {
